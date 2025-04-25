@@ -17,6 +17,15 @@
         </div>
 
         <div>
+          <label class="block font-semibold mb-1">Atau unggah file (.txt):</label>
+          <input
+            type="file"
+            name="file_input"
+            class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+        </div>
+
+        <div>
           <label class="block font-semibold mb-1">Kunci:</label>
           <input type="text" name="kunci" required id="input-kunci" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Contoh: KEY atau 5,8 (untuk Affine)" />
           <div id="key-info" class="text-sm text-gray-500 mt-1"></div>
@@ -35,150 +44,148 @@
           </select>
         </div>
 
-        <div class="flex flex-wrap justify-between gap-3">
+        <div class="flex flex-wrap gap-3">
           <button type="button" id="btn-enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔒 Enkripsi</button>
           <button type="button" id="btn-dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔓 Dekripsi</button>
         </div>
       </form>
-
-      {% if tampilkan_file %}
       <div id="hasil-container" class="mt-8 hidden">
-        <h3 class="text-xl font-semibold text-gray-800 mb-2">🧾 Hasil:</h3>
-        <pre id="hasil-text" class="bg-gray-100 border border-gray-300 p-4 rounded-md whitespace-pre-wrap"></pre>
+        <h2 class="text-lg font-semibold">Hasil</h2>
+        <pre id="hasil-text" class="p-2 bg-gray-100 rounded break-words whitespace-pre-wrap"></pre>
       </div>
-      {% endif %}
     </div>
+    <script>
+      const algoritmaSelect = document.querySelector('select[name="algoritma"]');
+      const keyInput = document.getElementById("input-kunci");
+      const keyInfoDiv = document.getElementById("key-info");
+      const keyWarningDiv = document.getElementById("key-warning");
+
+      const btnEnkripsi = document.getElementById("btn-enkripsi");
+      const btnDekripsi = document.getElementById("btn-dekripsi");
+      const btnSimpan = document.getElementById("btn-simpan");
+      const hasilContainer = document.getElementById("hasil-container");
+      const hasilText = document.getElementById("hasil-text");
+
+      const keyDescriptions = {
+        vigenere: "🔑 Gunakan huruf saja, contoh: KEY",
+        vigenere_auto: "🔑 Gunakan huruf saja, contoh: KEY",
+        vigenere_extended: "🔑 Bisa teks apa saja (utf-8), contoh: mySecret123!",
+        affine: "🔑 Masukkan dua angka a,b coprime dengan 26, contoh: 5,8",
+        playfair: "🔑 Gunakan huruf saja, contoh: MONARCHY",
+        hill: "🔑 Masukkan angka elemen matriks persegi, contoh: 3,3,2,5 (2x2)",
+      };
+
+      function gcd(a, b) {
+        while (b !== 0) {
+          [a, b] = [b, a % b];
+        }
+        return a;
+      }
+
+      function isPerfectSquare(n) {
+        return Number.isInteger(Math.sqrt(n));
+      }
+
+      function resetHasil() {
+        hasilText.textContent = "";
+        hasilContainer.classList.add("hidden");
+        btnSimpan.disabled = true;
+      }
+
+      function validateKey() {
+        const algorithm = algoritmaSelect.value;
+        const key = keyInput.value.trim();
+        let valid = false;
+
+        if (algorithm === "vigenere" || algorithm === "vigenere_auto" || algorithm === "playfair") {
+          valid = /^[A-Za-z]+$/.test(key);
+        } else if (algorithm === "vigenere_extended") {
+          valid = key.length > 0;
+        } else if (algorithm === "affine") {
+          if (/^\d+,\d+$/.test(key)) {
+            const [a, b] = key.split(",").map(Number);
+            valid = gcd(a, 26) === 1;
+          }
+        } else if (algorithm === "hill") {
+          if (/^(\d+,)*\d+$/.test(key)) {
+            const nums = key.split(",").map(Number);
+            valid = isPerfectSquare(nums.length);
+          }
+        }
+
+        keyInfoDiv.textContent = keyDescriptions[algorithm] || "";
+        keyWarningDiv.classList.toggle("hidden", valid || key === "");
+        btnEnkripsi.disabled = !valid;
+        btnDekripsi.disabled = !valid;
+
+        return valid;
+      }
+
+      function showResult(text) {
+        hasilText.textContent = text;
+        hasilContainer.classList.remove("hidden");
+        btnSimpan.disabled = false;
+      }
+
+      async function prosesAksi(metode) {
+        if (!validateKey()) return;
+        const text = document.querySelector('textarea[name="teks"]').value.trim();
+        if (!text) return alert("Teks harus diisi!");
+
+        const algoritma = algoritmaSelect.value;
+        const kunci = keyInput.value;
+
+        try {
+          const res = await fetch("/api/proses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ algoritma, metode, teks: text, kunci }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            showResult(data.hasil);
+          } else {
+            alert("❌ " + data.error);
+          }
+        } catch (err) {
+          alert("❌ Terjadi kesalahan: " + err.message);
+        }
+      }
+
+      btnEnkripsi.addEventListener("click", () => prosesAksi("enkripsi"));
+      btnDekripsi.addEventListener("click", () => prosesAksi("dekripsi"));
+
+      btnSimpan.addEventListener("click", () => {
+        const hasil = hasilText.textContent.trim();
+        if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
+
+        const blob = new Blob([hasil], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "hasil_enkripsi_deskripsi.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert("✅ Hasil berhasil disimpan sebagai file teks.");
+      });
+
+      algoritmaSelect.addEventListener("change", () => {
+        validateKey();
+        resetHasil(); // Reset hasil saat algoritma diubah
+      });
+
+      keyInput.addEventListener("input", () => {
+        validateKey();
+        resetHasil(); // Reset hasil saat key diubah
+      });
+
+      window.addEventListener("DOMContentLoaded", () => {
+        validateKey();
+        resetHasil();
+      });
+    </script>
   </body>
-  <script>
-    const algoritmaSelect = document.querySelector('select[name="algoritma"]');
-    const keyInput = document.getElementById("input-kunci");
-    const keyInfoDiv = document.getElementById("key-info");
-    const keyWarningDiv = document.getElementById("key-warning");
-
-    const btnEnkripsi = document.getElementById("btn-enkripsi");
-    const btnDekripsi = document.getElementById("btn-dekripsi");
-    const hasilContainer = document.getElementById("hasil-container");
-    const hasilText = document.getElementById("hasil-text");
-
-    const keyDescriptions = {
-      vigenere: "🔑 Gunakan huruf saja, contoh: KEY",
-      vigenere_auto: "🔑 Gunakan huruf saja, contoh: KEY",
-      vigenere_extended: "🔑 Bisa teks apa saja (utf-8), contoh: mySecret123!",
-      affine: "🔑 Masukkan dua angka a,b coprime dengan 26, contoh: 5,8",
-      playfair: "🔑 Gunakan huruf saja, contoh: MONARCHY",
-      hill: "🔑 Masukkan angka elemen matriks persegi, contoh: 3,3,2,5 (2x2)",
-    };
-
-    function gcd(a, b) {
-      while (b !== 0) {
-        [a, b] = [b, a % b];
-      }
-      return a;
-    }
-
-    function isPerfectSquare(n) {
-      return Number.isInteger(Math.sqrt(n));
-    }
-
-    function resetHasil() {
-      hasilText.textContent = "";
-      hasilContainer.classList.add("hidden");
-      //   btnSimpan.disabled = true;
-    }
-
-    function validateKey() {
-      const algorithm = algoritmaSelect.value;
-      const key = keyInput.value.trim();
-      let valid = false;
-
-      if (algorithm === "vigenere" || algorithm === "vigenere_auto" || algorithm === "playfair") {
-        valid = /^[A-Za-z]+$/.test(key);
-      } else if (algorithm === "vigenere_extended") {
-        valid = key.length > 0;
-      } else if (algorithm === "affine") {
-        if (/^\d+,\d+$/.test(key)) {
-          const [a, b] = key.split(",").map(Number);
-          valid = gcd(a, 26) === 1;
-        }
-      } else if (algorithm === "hill") {
-        if (/^(\d+,)*\d+$/.test(key)) {
-          const nums = key.split(",").map(Number);
-          valid = isPerfectSquare(nums.length);
-        }
-      }
-
-      keyInfoDiv.textContent = keyDescriptions[algorithm] || "";
-      keyWarningDiv.classList.toggle("hidden", valid || key === "");
-      btnEnkripsi.disabled = !valid;
-      btnDekripsi.disabled = !valid;
-
-      return valid;
-    }
-
-    function showResult(text) {
-      hasilText.textContent = text;
-      hasilContainer.classList.remove("hidden");
-      //   btnSimpan.disabled = false;
-    }
-
-    async function prosesAksi(metode) {
-      if (!validateKey()) return;
-      const text = document.querySelector('textarea[name="teks"]').value.trim();
-      if (!text) return alert("Teks harus diisi!");
-
-      const algoritma = algoritmaSelect.value;
-      const kunci = keyInput.value;
-
-      try {
-        const res = await fetch("/api/proses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ algoritma, metode, teks: text, kunci }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          showResult(data.hasil);
-        } else {
-          alert("❌ " + data.error);
-        }
-      } catch (err) {
-        alert("❌ Terjadi kesalahan: " + err.message);
-      }
-    }
-
-    btnEnkripsi.addEventListener("click", () => prosesAksi("enkripsi"));
-    btnDekripsi.addEventListener("click", () => prosesAksi("dekripsi"));
-
-    // btnSimpan.addEventListener("click", () => {
-    //   const hasil = hasilText.textContent.trim();
-    //   if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
-
-    //   const blob = new Blob([hasil], { type: "text/plain" });
-    //   const url = URL.createObjectURL(blob);
-    //   const a = document.createElement("a");
-    //   a.href = url;
-    //   a.download = "hasil_enkripsi_deskripsi.txt";
-    //   a.click();
-    //   URL.revokeObjectURL(url);
-
-    //   alert("✅ Hasil berhasil disimpan sebagai file teks.");
-    // });
-
-    algoritmaSelect.addEventListener("change", () => {
-      validateKey();
-      resetHasil();
-    });
-
-    keyInput.addEventListener("input", () => {
-      validateKey();
-      resetHasil();
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      validateKey();
-      resetHasil();
-    });
-  </script>
 </html>
