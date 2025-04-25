@@ -12,9 +12,6 @@ from cipher.playfair import encrypt_playfair, decrypt_playfair
 from cipher.hill import encrypt_hill, decrypt_hill
 
 app = Flask(__name__)
-UPLOAD_DIR = 'uploads'
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_DIR
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
