@@ -38,7 +38,6 @@
         <div class="flex flex-wrap justify-between gap-3">
           <button type="button" id="btn-enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔒 Enkripsi</button>
           <button type="button" id="btn-dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔓 Dekripsi</button>
-          <button type="button" id="btn-simpan" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">💾 Simpan Hasil</button>
         </div>
       </form>
 
@@ -58,7 +57,6 @@
 
     const btnEnkripsi = document.getElementById("btn-enkripsi");
     const btnDekripsi = document.getElementById("btn-dekripsi");
-    const btnSimpan = document.getElementById("btn-simpan");
     const hasilContainer = document.getElementById("hasil-container");
     const hasilText = document.getElementById("hasil-text");
 
@@ -85,7 +83,7 @@
     function resetHasil() {
       hasilText.textContent = "";
       hasilContainer.classList.add("hidden");
-      btnSimpan.disabled = true;
+      //   btnSimpan.disabled = true;
     }
 
     function validateKey() {
@@ -120,7 +118,7 @@
     function showResult(text) {
       hasilText.textContent = text;
       hasilContainer.classList.remove("hidden");
-      btnSimpan.disabled = false;
+      //   btnSimpan.disabled = false;
     }
 
     async function prosesAksi(metode) {
@@ -153,20 +151,20 @@
     btnEnkripsi.addEventListener("click", () => prosesAksi("enkripsi"));
     btnDekripsi.addEventListener("click", () => prosesAksi("dekripsi"));
 
-    btnSimpan.addEventListener("click", () => {
-      const hasil = hasilText.textContent.trim();
-      if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
+    // btnSimpan.addEventListener("click", () => {
+    //   const hasil = hasilText.textContent.trim();
+    //   if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
 
-      const blob = new Blob([hasil], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "hasil_enkripsi_deskripsi.txt";
-      a.click();
-      URL.revokeObjectURL(url);
+    //   const blob = new Blob([hasil], { type: "text/plain" });
+    //   const url = URL.createObjectURL(blob);
+    //   const a = document.createElement("a");
+    //   a.href = url;
+    //   a.download = "hasil_enkripsi_deskripsi.txt";
+    //   a.click();
+    //   URL.revokeObjectURL(url);
 
-      alert("✅ Hasil berhasil disimpan sebagai file teks.");
-    });
+    //   alert("✅ Hasil berhasil disimpan sebagai file teks.");
+    // });
 
     algoritmaSelect.addEventListener("change", () => {
       validateKey();

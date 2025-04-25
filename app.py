@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, send_file, jsonify
 
 from werkzeug.utils import secure_filename
 import numpy as np
-import os
 
 from cipher.vigenere import encrypt, decrypt
 from cipher.vigenere_auto import encrypt_autokey, decrypt_autokey
@@ -64,13 +63,6 @@ def index():
                 hasil = encrypt_hill(data, key_matrix) if metode == 'enkripsi' else decrypt_hill(data, key_matrix)
             except:
                 hasil = 'Kunci hill harus dalam format matriks, contoh: 6,24,1;13,16,10;20,17,15'
-
-        if 'simpan' in request.form:
-            nama_out = 'hasil' + ('.bin' if isinstance(hasil, bytes) else '.txt')
-            output_path = os.path.join(app.config['UPLOAD_FOLDER'], nama_out)
-            with open(output_path, 'wb' if isinstance(hasil, bytes) else 'w', encoding=None if isinstance(hasil, bytes) else 'utf-8') as f:
-                f.write(hasil)
-            return send_file(output_path, as_attachment=True)
 
         tampilkan_file = True
 
