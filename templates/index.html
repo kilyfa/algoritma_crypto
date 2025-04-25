@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aplikasi Kriptografi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 font-sans p-4">
+    <div class="max-w-4xl mx-auto my-10 bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-bold text-center text-blue-700 mb-6">🔐 Aplikasi Enkripsi & Dekripsi</h2>
+
+      <form method="post" enctype="multipart/form-data" class="space-y-5">
+        <div>
+          <label class="block font-semibold mb-1">Masukkan teks:</label>
+          <textarea name="teks" rows="5" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Tulis teks yang ingin dienkripsi/dekripsi..."></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-1">Kunci:</label>
+          <input type="text" name="kunci" required id="input-kunci" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Contoh: KEY atau 5,8 (untuk Affine)" />
+          <div id="key-info" class="text-sm text-gray-500 mt-1"></div>
+          <div id="key-warning" class="text-sm text-red-500 mt-1 hidden">⚠️ Format kunci tidak sesuai</div>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-1">Pilih algoritma:</label>
+          <select name="algoritma" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="vigenere">Vigenère Cipher</option>
+            <option value="vigenere_auto">Auto-key Vigenère Cipher</option>
+            <option value="vigenere_extended">Extended Vigenère Cipher</option>
+            <option value="affine">Affine Cipher</option>
+            <option value="playfair">Playfair Cipher</option>
+            <option value="hill">Hill Cipher</option>
+          </select>
+        </div>
+
+        <div class="flex flex-wrap justify-between gap-3">
+          <button type="button" id="btn-enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔒 Enkripsi</button>
+          <button type="button" id="btn-dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔓 Dekripsi</button>
+          <button type="button" id="btn-simpan" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">💾 Simpan Hasil</button>
+        </div>
+      </form>
+
+      {% if tampilkan_file %}
+      <div id="hasil-container" class="mt-8 hidden">
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">🧾 Hasil:</h3>
+        <pre id="hasil-text" class="bg-gray-100 border border-gray-300 p-4 rounded-md whitespace-pre-wrap"></pre>
+      </div>
+      {% endif %}
+    </div>
+  </body>
+  <script>
+    const algoritmaSelect = document.querySelector('select[name="algoritma"]');
+    const keyInput = document.getElementById("input-kunci");
+    const keyInfoDiv = document.getElementById("key-info");
+    const keyWarningDiv = document.getElementById("key-warning");
+
+    const btnEnkripsi = document.getElementById("btn-enkripsi");
+    const btnDekripsi = document.getElementById("btn-dekripsi");
+    const btnSimpan = document.getElementById("btn-simpan");
+    const hasilContainer = document.getElementById("hasil-container");
+    const hasilText = document.getElementById("hasil-text");
+
+    const keyDescriptions = {
+      vigenere: "🔑 Gunakan huruf saja, contoh: KEY",
+      vigenere_auto: "🔑 Gunakan huruf saja, contoh: KEY",
+      vigenere_extended: "🔑 Bisa teks apa saja (utf-8), contoh: mySecret123!",
+      affine: "🔑 Masukkan dua angka a,b coprime dengan 26, contoh: 5,8",
+      playfair: "🔑 Gunakan huruf saja, contoh: MONARCHY",
+      hill: "🔑 Masukkan angka elemen matriks persegi, contoh: 3,3,2,5 (2x2)",
+    };
+
+    function gcd(a, b) {
+      while (b !== 0) {
+        [a, b] = [b, a % b];
+      }
+      return a;
+    }
+
+    function isPerfectSquare(n) {
+      return Number.isInteger(Math.sqrt(n));
+    }
+
+    function resetHasil() {
+      hasilText.textContent = "";
+      hasilContainer.classList.add("hidden");
+      btnSimpan.disabled = true;
+    }
+
+    function validateKey() {
+      const algorithm = algoritmaSelect.value;
+      const key = keyInput.value.trim();
+      let valid = false;
+
+      if (algorithm === "vigenere" || algorithm === "vigenere_auto" || algorithm === "playfair") {
+        valid = /^[A-Za-z]+$/.test(key);
+      } else if (algorithm === "vigenere_extended") {
+        valid = key.length > 0;
+      } else if (algorithm === "affine") {
+        if (/^\d+,\d+$/.test(key)) {
+          const [a, b] = key.split(",").map(Number);
+          valid = gcd(a, 26) === 1;
+        }
+      } else if (algorithm === "hill") {
+        if (/^(\d+,)*\d+$/.test(key)) {
+          const nums = key.split(",").map(Number);
+          valid = isPerfectSquare(nums.length);
+        }
+      }
+
+      keyInfoDiv.textContent = keyDescriptions[algorithm] || "";
+      keyWarningDiv.classList.toggle("hidden", valid || key === "");
+      btnEnkripsi.disabled = !valid;
+      btnDekripsi.disabled = !valid;
+
+      return valid;
+    }
+
+    function showResult(text) {
+      hasilText.textContent = text;
+      hasilContainer.classList.remove("hidden");
+      btnSimpan.disabled = false;
+    }
+
+    async function prosesAksi(metode) {
+      if (!validateKey()) return;
+      const text = document.querySelector('textarea[name="teks"]').value.trim();
+      if (!text) return alert("Teks harus diisi!");
+
+      const algoritma = algoritmaSelect.value;
+      const kunci = keyInput.value;
+
+      try {
+        const res = await fetch("/api/proses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ algoritma, metode, teks: text, kunci }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showResult(data.hasil);
+        } else {
+          alert("❌ " + data.error);
+        }
+      } catch (err) {
+        alert("❌ Terjadi kesalahan: " + err.message);
+      }
+    }
+
+    btnEnkripsi.addEventListener("click", () => prosesAksi("enkripsi"));
+    btnDekripsi.addEventListener("click", () => prosesAksi("dekripsi"));
+
+    btnSimpan.addEventListener("click", () => {
+      const hasil = hasilText.textContent.trim();
+      if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
+
+      const blob = new Blob([hasil], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hasil_enkripsi_deskripsi.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      alert("✅ Hasil berhasil disimpan sebagai file teks.");
+    });
+
+    algoritmaSelect.addEventListener("change", () => {
+      validateKey();
+      resetHasil();
+    });
+
+    keyInput.addEventListener("input", () => {
+      validateKey();
+      resetHasil();
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      validateKey();
+      resetHasil();
+    });
+  </script>
+</html>
