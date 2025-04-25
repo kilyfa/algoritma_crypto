@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, send_file, jsonify
 
-import os
 from werkzeug.utils import secure_filename
 import numpy as np
+import os
 
 from cipher.vigenere import encrypt, decrypt
 from cipher.vigenere_auto import encrypt_autokey, decrypt_autokey
@@ -23,22 +23,9 @@ def index():
         algoritma = request.form.get('algoritma')
         kunci = request.form.get('kunci', '')
         teks = request.form.get('teks', '')
-        file_input = request.files.get('file_input')
 
         data = teks
-        nama_file = None
 
-        if file_input and file_input.filename:
-            nama_file = secure_filename(file_input.filename)
-            path_file = os.path.join(app.config['UPLOAD_FOLDER'], nama_file)
-            file_input.save(path_file)
-
-            if algoritma == 'vigenere_extended':
-                with open(path_file, 'rb') as f:
-                    data = f.read()
-            else:
-                with open(path_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    data = f.read()
 
         if algoritma == 'vigenere_extended' and isinstance(data, str):
             data = data.encode()
