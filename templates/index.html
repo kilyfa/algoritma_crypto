@@ -55,6 +55,9 @@
       </div>
     </div>
     <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        // semua kode JS di sini
+      });
       const algoritmaSelect = document.querySelector('select[name="algoritma"]');
       const keyInput = document.getElementById("input-kunci");
       const keyInfoDiv = document.getElementById("key-info");
@@ -62,7 +65,6 @@
 
       const btnEnkripsi = document.getElementById("btn-enkripsi");
       const btnDekripsi = document.getElementById("btn-dekripsi");
-      const btnSimpan = document.getElementById("btn-simpan");
       const hasilContainer = document.getElementById("hasil-container");
       const hasilText = document.getElementById("hasil-text");
 
@@ -89,7 +91,6 @@
       function resetHasil() {
         hasilText.textContent = "";
         hasilContainer.classList.add("hidden");
-        btnSimpan.disabled = true;
       }
 
       function validateKey() {
@@ -124,7 +125,6 @@
       function showResult(text) {
         hasilText.textContent = text;
         hasilContainer.classList.remove("hidden");
-        btnSimpan.disabled = false;
       }
 
       async function prosesAksi(metode) {
@@ -156,21 +156,6 @@
 
       btnEnkripsi.addEventListener("click", () => prosesAksi("enkripsi"));
       btnDekripsi.addEventListener("click", () => prosesAksi("dekripsi"));
-
-      btnSimpan.addEventListener("click", () => {
-        const hasil = hasilText.textContent.trim();
-        if (!hasil) return alert("Hasil kosong, tidak ada yang disimpan!");
-
-        const blob = new Blob([hasil], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "hasil_enkripsi_deskripsi.txt";
-        a.click();
-        URL.revokeObjectURL(url);
-
-        alert("✅ Hasil berhasil disimpan sebagai file teks.");
-      });
 
       algoritmaSelect.addEventListener("change", () => {
         validateKey();
