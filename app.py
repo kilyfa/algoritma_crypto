@@ -51,14 +51,20 @@ def index():
 
         elif algoritma == 'vigenere_extended':
             if metode == 'enkripsi':
-                hasil = encrypt_extended(data, kunci)
+                binary = teks.encode()
+                hasil = encrypt_extended(binary, kunci)
             else:
-                hasil = decrypt_extended(data, kunci)
-
+                # Coba decode dari hex jika input dalam format hex
+                try:
+                    binary = bytes.fromhex(teks)
+                except:
+                    binary = teks.encode()
+                hasil = decrypt_extended(binary, kunci)
+            
             try:
                 hasil = hasil.decode('utf-8')
             except:
-                hasil = hasil.hex()  
+                hasil = hasil.hex()
 
         elif algoritma == 'affine':
             try:
@@ -98,8 +104,17 @@ def proses_api():
             hasil = encrypt_autokey(teks, kunci) if metode == 'enkripsi' else decrypt_autokey(teks, kunci)
 
         elif algoritma == 'vigenere_extended':
-            binary = teks.encode()
-            hasil = encrypt_extended(binary, kunci) if metode == 'enkripsi' else decrypt_extended(binary, kunci)
+            if metode == 'enkripsi':
+                binary = teks.encode()
+                hasil = encrypt_extended(binary, kunci)
+            else:
+                # Coba decode dari hex jika input dalam format hex
+                try:
+                    binary = bytes.fromhex(teks)
+                except:
+                    binary = teks.encode()
+                hasil = decrypt_extended(binary, kunci)
+            
             try:
                 hasil = hasil.decode('utf-8')
             except:
