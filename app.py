@@ -54,7 +54,6 @@ def index():
                 binary = teks.encode()
                 hasil = encrypt_extended(binary, kunci)
             else:
-                # Coba decode dari hex jika input dalam format hex
                 try:
                     binary = bytes.fromhex(teks)
                 except:
@@ -78,35 +77,26 @@ def index():
 
         elif algoritma == 'hill':
             try:
-                # Bersihkan spasi dan ubah ke lowercase
                 kunci = kunci.replace(' ', '').lower()
                 
-                # Cek format kunci
                 if ';' in kunci:
-                    # Format dengan titik koma (contoh: 3,3;2,5)
                     rows = [list(map(int, row.split(','))) for row in kunci.split(';')]
                 else:
-                    # Format tanpa titik koma (contoh: 3,3,2,5)
                     numbers = list(map(int, kunci.split(',')))
-                    # Cek apakah jumlah angka bisa membentuk matriks persegi
                     n = int(len(numbers) ** 0.5)
                     if n * n != len(numbers):
                         return jsonify({'error': 'Jumlah angka tidak bisa membentuk matriks persegi'}), 400
-                    # Bentuk matriks dari array angka
                     rows = [numbers[i:i+n] for i in range(0, len(numbers), n)]
                 
                 key_matrix = np.array(rows)
                 
-                # Validasi matriks
                 if key_matrix.shape[0] != key_matrix.shape[1]:
                     return jsonify({'error': 'Matriks harus persegi (jumlah baris = jumlah kolom)'}), 400
                 
-                # Cek determinan
                 det = int(np.linalg.det(key_matrix))
                 if det == 0:
                     return jsonify({'error': 'Determinan matriks tidak boleh 0'}), 400
                 
-                # Cek apakah determinan relatif prima dengan 26
                 def gcd(a, b):
                     while b:
                         a, b = b, a % b
@@ -146,7 +136,6 @@ def proses_api():
                 binary = teks.encode()
                 hasil = encrypt_extended(binary, kunci)
             else:
-                # Coba decode dari hex jika input dalam format hex
                 try:
                     binary = bytes.fromhex(teks)
                 except:
@@ -170,35 +159,26 @@ def proses_api():
 
         elif algoritma == 'hill':
             try:
-                # Bersihkan spasi dan ubah ke lowercase
                 kunci = kunci.replace(' ', '').lower()
                 
-                # Cek format kunci
                 if ';' in kunci:
-                    # Format dengan titik koma (contoh: 3,3;2,5)
                     rows = [list(map(int, row.split(','))) for row in kunci.split(';')]
                 else:
-                    # Format tanpa titik koma (contoh: 3,3,2,5)
                     numbers = list(map(int, kunci.split(',')))
-                    # Cek apakah jumlah angka bisa membentuk matriks persegi
                     n = int(len(numbers) ** 0.5)
                     if n * n != len(numbers):
                         return jsonify({'error': 'Jumlah angka tidak bisa membentuk matriks persegi'}), 400
-                    # Bentuk matriks dari array angka
                     rows = [numbers[i:i+n] for i in range(0, len(numbers), n)]
                 
                 key_matrix = np.array(rows)
                 
-                # Validasi matriks
                 if key_matrix.shape[0] != key_matrix.shape[1]:
                     return jsonify({'error': 'Matriks harus persegi (jumlah baris = jumlah kolom)'}), 400
                 
-                # Cek determinan
                 det = int(np.linalg.det(key_matrix))
                 if det == 0:
                     return jsonify({'error': 'Determinan matriks tidak boleh 0'}), 400
                 
-                # Cek apakah determinan relatif prima dengan 26
                 def gcd(a, b):
                     while b:
                         a, b = b, a % b
