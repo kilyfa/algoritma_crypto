@@ -21,6 +21,19 @@
           <input type="text" name="kunci" required id="input-kunci" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Contoh: KEY atau 5,8 (untuk Affine)" />
           <div id="key-info" class="text-sm text-gray-500 mt-1"></div>
           <div id="key-warning" class="text-sm text-red-500 mt-1 hidden">⚠️ Format kunci tidak sesuai</div>
+          <div class="form-group">
+            <small class="form-text text-muted">
+              <div id="kunci-hint" style="display: none;">
+                <strong>Format Kunci Hill Cipher:</strong><br>
+                - Format dengan titik koma: 3,3;2,5<br>
+                - Format tanpa titik koma: 3,3,2,5<br>
+                <strong>Catatan:</strong><br>
+                - Jumlah angka harus bisa membentuk matriks persegi (4 angka untuk 2x2, 9 angka untuk 3x3)<br>
+                - Determinan matriks tidak boleh 0<br>
+                - Determinan harus relatif prima dengan 26
+              </div>
+            </small>
+          </div>
         </div>
 
         <div>
@@ -158,6 +171,18 @@
       window.addEventListener("DOMContentLoaded", () => {
         validateKey();
         resetHasil();
+      });
+
+      // Menampilkan petunjuk kunci berdasarkan algoritma yang dipilih
+      document.getElementById('algoritma').addEventListener('change', function() {
+        const kunciHint = document.getElementById('kunci-hint');
+        const selectedAlgo = this.value;
+        
+        if (selectedAlgo === 'hill') {
+          kunciHint.style.display = 'block';
+        } else {
+          kunciHint.style.display = 'none';
+        }
       });
     </script>
   </body>
