@@ -17,19 +17,25 @@
         </div>
 
         <div>
+          <label class="block font-semibold mb-1">Upload File (.txt):</label>
+          <input type="file" name="file_input" id="file_input" accept=".txt" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <small class="text-gray-500">Jika file diunggah, teks di atas dapat dikosongkan.</small>
+        </div>
+
+        <div>
           <label class="block font-semibold mb-1">Kunci:</label>
           <input type="text" name="kunci" required id="input-kunci" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Contoh: KEY atau 5,8 (untuk Affine)" />
           <div id="key-info" class="text-sm text-gray-500 mt-1"></div>
           <div id="key-warning" class="text-sm text-red-500 mt-1 hidden">⚠️ Format kunci tidak sesuai</div>
           <div class="form-group">
             <small class="form-text text-muted">
-              <div id="kunci-hint" style="display: none;">
-                <strong>Format Kunci Hill Cipher:</strong><br>
-                - Format dengan titik koma: 3,3;2,5<br>
-                - Format tanpa titik koma: 3,3,2,5<br>
-                <strong>Catatan:</strong><br>
-                - Jumlah angka harus bisa membentuk matriks persegi (4 angka untuk 2x2, 9 angka untuk 3x3)<br>
-                - Determinan matriks tidak boleh 0<br>
+              <div id="kunci-hint" style="display: none">
+                <strong>Format Kunci Hill Cipher:</strong><br />
+                - Format dengan titik koma: 3,3;2,5<br />
+                - Format tanpa titik koma: 3,3,2,5<br />
+                <strong>Catatan:</strong><br />
+                - Jumlah angka harus bisa membentuk matriks persegi (4 angka untuk 2x2, 9 angka untuk 3x3)<br />
+                - Determinan matriks tidak boleh 0<br />
                 - Determinan harus relatif prima dengan 26
               </div>
             </small>
@@ -49,13 +55,18 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-          <button type="button" id="btn-enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔒 Enkripsi</button>
-          <button type="button" id="btn-dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔓 Dekripsi</button>
+          <button type="submit" name="metode" value="enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full sm:w-auto">🔒 Enkripsi</button>
+          <button type="submit" name="metode" value="dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md w-full sm:w-auto">🔓 Dekripsi</button>
         </div>
       </form>
-      <div id="hasil-container" class="mt-8 hidden">
+
+      <div id="hasil-container" class="mt-8">
+        {% if hasil %}
         <h2 class="text-lg font-semibold">Hasil</h2>
-        <pre id="hasil-text" class="p-2 bg-gray-100 rounded break-words whitespace-pre-wrap"></pre>
+        <textarea readonly class="w-full border border-gray-300 rounded-md p-2 bg-gray-100">{{ hasil }}</textarea>
+        {% if nama_file_hasil %}
+        <a href="{{ url_for('download_file', filename=nama_file_hasil) }}" class="block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center">⬇️ Download Hasil</a>
+        {% endif %} {% endif %}
       </div>
     </div>
     <script>
@@ -110,8 +121,8 @@
           }
         } else if (algorithm === "hill") {
           if (/^(\d+[,;])*\d+$/.test(key)) {
-            const normalizedKey = key.replace(/;/g, ',');
-            const nums = normalizedKey.split(',').map(Number);
+            const normalizedKey = key.replace(/;/g, ",");
+            const nums = normalizedKey.split(",").map(Number);
             valid = isPerfectSquare(nums.length);
           }
         }
@@ -131,21 +142,38 @@
 
       async function prosesAksi(metode) {
         if (!validateKey()) return;
+
         const text = document.querySelector('textarea[name="teks"]').value.trim();
-        if (!text) return alert("Teks harus diisi!");
+        const fileInput = document.getElementById("file_input");
+        const file = fileInput.files[0];
+
+        // Validasi: teks atau file harus diisi
+        if (!text && !file) {
+          return alert("Harap isi teks atau unggah file!");
+        }
 
         const algoritma = algoritmaSelect.value;
         let kunci = keyInput.value.trim();
-        
+
         if (algoritma === "hill") {
-          kunci = kunci.replace(/;/g, ',');
+          kunci = kunci.replace(/;/g, ",");
+        }
+
+        const formData = new FormData();
+        formData.append("metode", metode);
+        formData.append("algoritma", algoritma);
+        formData.append("kunci", kunci);
+
+        if (file) {
+          formData.append("file_input", file);
+        } else {
+          formData.append("teks", text);
         }
 
         try {
-          const res = await fetch("/api/proses", {
+          const res = await fetch("/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ algoritma, metode, teks: text, kunci }),
+            body: formData,
           });
 
           const data = await res.json();
@@ -179,14 +207,14 @@
       });
 
       // Menampilkan petunjuk kunci berdasarkan algoritma yang dipilih
-      document.getElementById('algoritma').addEventListener('change', function() {
-        const kunciHint = document.getElementById('kunci-hint');
+      document.getElementById("algoritma").addEventListener("change", function () {
+        const kunciHint = document.getElementById("kunci-hint");
         const selectedAlgo = this.value;
-        
-        if (selectedAlgo === 'hill') {
-          kunciHint.style.display = 'block';
+
+        if (selectedAlgo === "hill") {
+          kunciHint.style.display = "block";
         } else {
-          kunciHint.style.display = 'none';
+          kunciHint.style.display = "none";
         }
       });
     </script>

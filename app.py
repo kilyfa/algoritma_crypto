@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, send_file,jsonify
-
+from flask import Flask, render_template, request, send_file, jsonify, make_response
 import os
 from werkzeug.utils import secure_filename
 import numpy as np
@@ -12,11 +11,18 @@ from cipher.playfair import encrypt_playfair, decrypt_playfair
 from cipher.hill import encrypt_hill, decrypt_hill
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['DOWNLOAD_FOLDER'] = 'downloads'
+
+# Ensure upload and download folders exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     hasil = ''
     tampilkan_file = False
+    nama_file_hasil = None
 
     if request.method == 'POST':
         metode = request.form.get('metode')
@@ -24,6 +30,9 @@ def index():
         kunci = request.form.get('kunci', '')
         teks = request.form.get('teks', '')
         file_input = request.files.get('file_input')
+
+        if not teks and not file_input:
+            return render_template('index.html', error='Harap isi teks atau unggah file.', hasil=hasil, tampilkan_file=tampilkan_file)
 
         data = teks
         nama_file = None
@@ -112,9 +121,22 @@ def index():
             except Exception as e:
                 return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 400
 
+        # Save hasil to a file for download
+        nama_file_hasil = f"hasil_{metode}_{algoritma}.txt"
+        path_hasil = os.path.join(app.config['DOWNLOAD_FOLDER'], nama_file_hasil)
+        with open(path_hasil, 'w', encoding='utf-8') as f:
+            f.write(hasil)
+
         tampilkan_file = True
 
-    return render_template('index.html', hasil=hasil, tampilkan_file=tampilkan_file)
+    return render_template('index.html', hasil=hasil, tampilkan_file=tampilkan_file, nama_file_hasil=nama_file_hasil)
+
+@app.route('/download/<filename>', methods=['GET'])
+def download_file(filename):
+    path = os.path.join(app.config['DOWNLOAD_FOLDER'], filename)
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True)
+    return jsonify({'error': 'File tidak ditemukan'}), 404
 
 @app.route('/api/proses', methods=['POST'])
 def proses_api():
@@ -199,5 +221,6 @@ def proses_api():
         return jsonify({'hasil': hasil})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
