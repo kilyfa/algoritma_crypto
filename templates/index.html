@@ -95,7 +95,23 @@
       </form>
       <div id="hasil-container" class="mt-8 hidden">
         <h2 class="text-lg font-semibold">Hasil</h2>
-        <pre id="hasil-text" class="p-2 bg-gray-100 rounded break-words whitespace-pre-wrap"></pre>
+        <div class="relative">
+          <pre id="hasil-text" class="p-2 bg-gray-100 rounded break-words whitespace-pre-wrap"></pre>
+          <button id="copy-btn" class="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm">📋 Salin</button>
+        </div>
+        <script>
+          document.getElementById("copy-btn").addEventListener("click", () => {
+            const hasilText = document.getElementById("hasil-text").textContent;
+            navigator.clipboard
+              .writeText(hasilText)
+              .then(() => {
+                alert("Hasil berhasil disalin ke clipboard!");
+              })
+              .catch((err) => {
+                alert("Gagal menyalin teks: " + err.message);
+              });
+          });
+        </script>
         <button id="download-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">⬇️ Download Hasil</button>
       </div>
     </div>
