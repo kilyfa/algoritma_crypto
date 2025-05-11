@@ -12,15 +12,49 @@
 
       <form method="post" enctype="multipart/form-data" class="space-y-5">
         <div>
-          <label class="block font-semibold mb-1">Masukkan teks:</label>
-          <textarea name="teks" rows="5" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Tulis teks yang ingin dienkripsi/dekripsi..."></textarea>
+          <label class="block font-semibold mb-2 text-lg">Masukkan teks atau unggah file:</label>
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col justify-center">
+              <input type="file" id="file-upload" accept=".txt" class="hidden" />
+              <label for="file-upload" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md transition duration-200">📂 Unggah File</label>
+              <div id="file-info" class="text-sm text-gray-600 mt-2 hidden">✅ File berhasil diunggah: <span id="file-name" class="font-semibold"></span></div>
+              <div id="file-error" class="text-sm text-red-600 mt-2 hidden">⚠️ Hanya file .txt yang diperbolehkan</div>
+            </div>
+            <textarea
+              id="input-teks"
+              name="teks"
+              rows="5"
+              class="flex-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              placeholder="Tulis teks yang ingin dienkripsi/dekripsi..."
+            ></textarea>
+          </div>
         </div>
 
-        <div>
-          <label class="block font-semibold mb-1">Upload File (.txt):</label>
-          <input type="file" name="file_input" id="file_input" accept=".txt" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
-          <small class="text-gray-500">Jika file diunggah, teks di atas dapat dikosongkan.</small>
-        </div>
+        <script>
+          const fileUpload = document.getElementById("file-upload");
+          const inputTeks = document.getElementById("input-teks");
+          const fileInfo = document.getElementById("file-info");
+          const fileName = document.getElementById("file-name");
+          const fileError = document.getElementById("file-error");
+
+          fileUpload.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === "text/plain") {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                inputTeks.value = e.target.result;
+                fileInfo.classList.remove("hidden");
+                fileError.classList.add("hidden");
+                fileName.textContent = file.name;
+              };
+              reader.readAsText(file);
+            } else {
+              fileUpload.value = ""; // Reset file input
+              fileInfo.classList.add("hidden");
+              fileError.classList.remove("hidden");
+            }
+          });
+        </script>
 
         <div>
           <label class="block font-semibold mb-1">Kunci:</label>
@@ -55,20 +89,26 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-          <button type="submit" name="metode" value="enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md w-full sm:w-auto">🔒 Enkripsi</button>
-          <button type="submit" name="metode" value="dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md w-full sm:w-auto">🔓 Dekripsi</button>
+          <button type="button" id="btn-enkripsi" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔒 Enkripsi</button>
+          <button type="button" id="btn-dekripsi" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">🔓 Dekripsi</button>
         </div>
       </form>
-
-      <div id="hasil-container" class="mt-8">
-        {% if hasil %}
+      <div id="hasil-container" class="mt-8 hidden">
         <h2 class="text-lg font-semibold">Hasil</h2>
-        <textarea readonly class="w-full border border-gray-300 rounded-md p-2 bg-gray-100">{{ hasil }}</textarea>
-        {% if nama_file_hasil %}
-        <a href="{{ url_for('download_file', filename=nama_file_hasil) }}" class="block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center">⬇️ Download Hasil</a>
-        {% endif %} {% endif %}
+        <pre id="hasil-text" class="p-2 bg-gray-100 rounded break-words whitespace-pre-wrap"></pre>
+        <button id="download-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">⬇️ Download Hasil</button>
       </div>
     </div>
+    <script>
+      document.getElementById("download-btn").addEventListener("click", () => {
+        const hasilText = document.getElementById("hasil-text").textContent;
+        const blob = new Blob([hasilText], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "hasil.txt";
+        link.click();
+      });
+    </script>
     <script>
       const algoritmaSelect = document.querySelector('select[name="algoritma"]');
       const keyInput = document.getElementById("input-kunci");
@@ -142,15 +182,8 @@
 
       async function prosesAksi(metode) {
         if (!validateKey()) return;
-
         const text = document.querySelector('textarea[name="teks"]').value.trim();
-        const fileInput = document.getElementById("file_input");
-        const file = fileInput.files[0];
-
-        // Validasi: teks atau file harus diisi
-        if (!text && !file) {
-          return alert("Harap isi teks atau unggah file!");
-        }
+        if (!text) return alert("Teks harus diisi!");
 
         const algoritma = algoritmaSelect.value;
         let kunci = keyInput.value.trim();
@@ -159,21 +192,11 @@
           kunci = kunci.replace(/;/g, ",");
         }
 
-        const formData = new FormData();
-        formData.append("metode", metode);
-        formData.append("algoritma", algoritma);
-        formData.append("kunci", kunci);
-
-        if (file) {
-          formData.append("file_input", file);
-        } else {
-          formData.append("teks", text);
-        }
-
         try {
-          const res = await fetch("/", {
+          const res = await fetch("/api/proses", {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ algoritma, metode, teks: text, kunci }),
           });
 
           const data = await res.json();
